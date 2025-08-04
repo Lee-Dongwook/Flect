@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "lint": "eslint src --ext .ts",
     "preview": "vite preview"
   },
   "devDependencies": {
@@ -14,5 +15,8 @@
     "prettier": "^3.6.2",
     "typescript": "~5.8.3",
     "vite": "^7.0.4"
+  },
+  "dependencies": {
+    "node": "^22.18.0"
   }
 }
