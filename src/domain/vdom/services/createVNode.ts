@@ -5,5 +5,6 @@ export function h(
   props: VNode['props'],
   ...children: VNode['children']
 ): VNode {
-  return { type, props: props || {}, children }
+  const normalizedChildren = (children ?? []).flat()
+  return { type, props: props || {}, children: normalizedChildren }
 }

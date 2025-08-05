@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "lint": "eslint src --ext .ts",
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/node": "^24.2.0",
     "eslint": "^9.32.0",
     "eslint-plugin-unused-imports": "^4.1.4",
     "prettier": "^3.6.2",

@@ -3,6 +3,11 @@ import { type HookContext, setCurrentContext, resetHookIndex } from '../../hooks
 import { setRenderTarget } from '../../hooks/services/dispatcher'
 
 export function render(vnode: VNode | string, container: HTMLElement) {
+  if (!vnode) {
+    console.warn('render: vnode is undefined or null')
+    return
+  }
+
   if (typeof vnode === 'string') {
     container.appendChild(document.createTextNode(vnode))
     return
@@ -32,12 +37,18 @@ export function render(vnode: VNode | string, container: HTMLElement) {
     for (const [key, value] of Object.entries(node.props)) {
       if (key.startsWith('on') && typeof value === 'function') {
         el.addEventListener(key.slice(2).toLowerCase(), value)
-      } else {
-        el.setAttribute(key, value)
+      } else if ((key !== 'children' && typeof value === 'string') || typeof value === 'number') {
+        el.setAttribute(key, String(value))
       }
     }
   }
 
-  vnode.children.forEach((child) => render(child, el))
+  if (vnode.children && Array.isArray(vnode.children)) {
+    vnode.children.forEach((child) => {
+      if (child !== undefined && child !== null) {
+        render(child, el)
+      }
+    })
+  }
   container.appendChild(el)
 }
