@@ -3,24 +3,40 @@ type Callback = (hasTimeRemaining: boolean, currentTime: number) => boolean | vo
 let scheduledHostCallback: Callback | null = null
 let isMessageLoopRunning: boolean = false
 
-const channel = new MessageChannel()
-const port = channel.port2
-const frameInterval = 5
-
+let yieldInterval = 5
 let deadline = 0
 
-function getCurrentTime(): number {
-  return performance.now()
+const channel = new MessageChannel()
+const port = channel.port2
+
+let needsPaint: boolean = false
+
+export function shouldYieldToHost(): boolean {
+  return getCurrentTime() >= deadline || needsPaint
 }
 
-function shouldYieldToHost(): boolean {
-  return getCurrentTime() >= deadline
+export function requestPaint() {
+  needsPaint = true
+}
+
+export function forceFrameRate(fps: number) {
+  if (fps < 1 || fps > 120) {
+    console.warn('forceFrameRate: fps out of range')
+    return
+  }
+
+  yieldInterval = Math.floor(1000 / fps)
+}
+
+export function getCurrentTime(): number {
+  return performance.now()
 }
 
 function performWorkUntilDeadline() {
   if (scheduledHostCallback) {
     const currentTime = getCurrentTime()
-    deadline = currentTime + frameInterval
+    deadline = currentTime + yieldInterval
+    needsPaint = false
 
     const hasMoreWork = scheduledHostCallback(true, currentTime)
     if (hasMoreWork) {
@@ -49,5 +65,3 @@ export function cancelHostCallback() {
   scheduledHostCallback = null
   isMessageLoopRunning = false
 }
-
-export { getCurrentTime, shouldYieldToHost }

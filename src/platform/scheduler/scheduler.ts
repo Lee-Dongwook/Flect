@@ -31,15 +31,13 @@ function push(queue: Task[], task: Task) {
 }
 
 function advanceTimers(currentTime: number) {
-  while (timerQueue.length > 0) {
-    const timer = timerQueue[0]
-    if (timer.startTime <= currentTime) {
-      timerQueue.shift()
-      timer.sortIndex = timer.expirationTime
-      push(taskQueue, timer)
-    } else {
-      break
-    }
+  let timer = timerQueue.peek()
+
+  while (timer && timer.startTime <= currentTime) {
+    timerQueue.pop()
+    timer.sortIndex = timer.expirationTime
+    taskQueue.push(timer)
+    timer = timerQueue.peek()
   }
 }
 
@@ -47,64 +45,65 @@ function workLoop(hasTimeRemaining: boolean, currentTime: number): boolean {
   currentTask = null
   advanceTimers(currentTime)
 
-  while (taskQueue.length > 0) {
-    const task = taskQueue[0]
+  let task = taskQueue.peek()
 
+  while (task) {
     if (task.expirationTime > currentTime && shouldYieldToHost()) {
       break
     }
 
     const callback = task.callback
     if (typeof callback === 'function') {
-      taskQueue.shift()
+      taskQueue.pop()
       currentTask = task
+
       const continuationCallback = callback()
 
       if (typeof continuationCallback === 'function') {
         task.callback = continuationCallback
-        push(taskQueue, task)
+        taskQueue.push(task)
       }
+    } else {
+      taskQueue.pop()
     }
+    task = taskQueue.peek()
   }
-  return taskQueue.length > 0
+  return taskQueue.size() > 0
 }
 
 function flushWork(hasTimeRemaining: boolean, initialTime: number) {
   isHostCallbackScheduled = false
   const currentTime = getCurrentTime()
+
   return workLoop(hasTimeRemaining, currentTime)
+}
+
+function getTimeoutByPriority(priority: SchdulerPriority): number {
+  switch (priority) {
+    case ImmediatePriority:
+      return -1
+    case UserBlockingPriority:
+      return 250
+    case NormalPriority:
+      return 5000
+    case LowPriority:
+      return 10000
+    case IdlePriority:
+      return Infinity
+    default:
+      return 5000
+  }
 }
 
 export function scheduleCallback(
   priorityLevel: SchdulerPriority,
   callback: () => void,
-  options?: { delay?: number }
+  options?: { delay?: number; timeout?: number }
 ): Task {
   const currentTime = getCurrentTime()
   const delay = options?.delay ?? 0
   const startTime = currentTime + delay
-  let timeout: number
-
-  switch (priorityLevel) {
-    case ImmediatePriority:
-      timeout = -1
-      break
-    case UserBlockingPriority:
-      timeout = 250
-      break
-    case NormalPriority:
-      timeout = 5000
-      break
-    case LowPriority:
-      timeout = 10000
-      break
-    case IdlePriority:
-      timeout = Infinity
-      break
-    default:
-      timeout = 5000
-  }
-
+  const timeout = options?.timeout ?? getTimeoutByPriority(priorityLevel)
   const expirationTime = startTime + timeout
 
   const newTask: Task = {
@@ -117,9 +116,9 @@ export function scheduleCallback(
   }
 
   if (delay > 0) {
-    push(timerQueue, newTask)
+    timerQueue.push(newTask)
   } else {
-    push(taskQueue, newTask)
+    taskQueue.push(newTask)
   }
 
   if (!isHostCallbackScheduled) {
@@ -131,16 +130,6 @@ export function scheduleCallback(
 }
 
 export function cancelCallback(task: Task) {
-  const tqIndex = taskQueue.indexOf(task)
-  if (tqIndex > -1) {
-    taskQueue.splice(tqIndex, 1)
-  }
-
-  const tmIndex = timerQueue.indexOf(task)
-  if (tmIndex > -1) {
-    timerQueue.splice(tmIndex, 1)
-  }
-
   task.callback = null
 }
 

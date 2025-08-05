@@ -1,6 +1,5 @@
-import { getCurrentContext } from '../model/hookContext'
-import { scheduleCallback } from '../../../domain/transitions/model/scheduler'
-import { setTransitionContext } from '../../../domain/transitions/model/transitionContext'
+import { getCurrentContext, setCurrentContext } from '../model/hookContext'
+import { scheduleCallback, NormalPriority } from '../../../platform/scheduler'
 
 export function useTransition(): [() => boolean, (callback: () => void) => void] {
   const ctx = getCurrentContext()
@@ -17,18 +16,15 @@ export function useTransition(): [() => boolean, (callback: () => void) => void]
   const startTransition = (callback: () => void) => {
     state.isPending = true
 
-    setTransitionContext({
-      isPending: true,
-      startTransition,
-    })
-
-    scheduleCallback(() => {
+    scheduleCallback(NormalPriority, () => {
       try {
+        setCurrentContext(ctx)
         callback()
       } finally {
         state.isPending = false
       }
     })
   }
+
   return [() => state.isPending, startTransition]
 }
