@@ -1,5 +1,6 @@
 import type { VNode } from '../../vdom/model/vnode'
-import { h } from '../../vdom/services/createVNode'
+import { type HookContext, setCurrentContext, resetHookIndex } from '../../hooks/model/hookContext'
+import { setRenderTarget } from '../../hooks/services/dispatcher'
 
 export function render(vnode: VNode | string, container: HTMLElement) {
   if (typeof vnode === 'string') {
@@ -7,18 +8,34 @@ export function render(vnode: VNode | string, container: HTMLElement) {
     return
   }
 
-  if (typeof vnode.type === 'function') {
-    const childVNode = (vnode.type as Function)(vnode.props ?? {})
-    render(childVNode, container)
+  const node = vnode as VNode
+
+  if (typeof node.type === 'function') {
+    const ctx: HookContext = { hooks: [], hookIndex: 0 }
+
+    function rerender() {
+      container.innerHTML = ''
+      setCurrentContext(ctx)
+      resetHookIndex()
+      const nextVNode = (node.type as Function)(node.props ?? {})
+      render(nextVNode, container)
+    }
+
+    setRenderTarget(rerender)
+    rerender()
     return
   }
 
-  const el = document.createElement(vnode.type as string)
+  const el = document.createElement(node.type as string)
 
-  if (vnode.props) {
-    Object.entries(vnode.props).forEach(([key, value]) => {
-      el.setAttribute(key, value)
-    })
+  if (node.props) {
+    for (const [key, value] of Object.entries(node.props)) {
+      if (key.startsWith('on') && typeof value === 'function') {
+        el.addEventListener(key.slice(2).toLowerCase(), value)
+      } else {
+        el.setAttribute(key, value)
+      }
+    }
   }
 
   vnode.children.forEach((child) => render(child, el))
