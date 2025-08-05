@@ -1,6 +1,9 @@
+import type { VNode } from 'domain/vdom/model/vnode'
+
 export interface HookContext {
   hooks: any[]
   hookIndex: number
+  prevVNode: VNode | string | null
 }
 
 let currentContext: HookContext | null = null

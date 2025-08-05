@@ -1,36 +1,23 @@
 import { h } from '../../domain/vdom/services/createVNode'
 import type { VNode } from '../../domain/vdom/model/vnode'
 
-export function jsx(
-  type: VNode['type'],
-  props: VNode['props'],
-  ...children: VNode['children']
-): VNode {
-  // undefined나 null인 children 제거
-  const filteredChildren = children.filter((child) => child !== undefined && child !== null)
-  return h(type, props, ...filteredChildren)
+function normalizeChildren(children: any): VNode['props']['children'] {
+  if (Array.isArray(children)) return children.flat().filter((c) => c !== null && c !== undefined)
+  if (children == null) return []
+  return [children]
 }
 
-export function jsxs(
-  type: VNode['type'],
-  props: VNode['props'],
-  ...children: VNode['children']
-): VNode {
-  // undefined나 null인 children 제거
-  const filteredChildren = children.filter((child) => child !== undefined && child !== null)
-  return h(type, props, ...filteredChildren)
+export function jsx(type: VNode['type'], props: VNode['props'] & { children?: any }): VNode {
+  const { children, ...restProps } = props || {}
+  const normalizedChildren = normalizeChildren(children)
+
+  return h(type, {
+    ...restProps,
+    children: normalizedChildren,
+  })
 }
 
-export function jsxDev(
-  type: VNode['type'],
-  props: VNode['props'],
-  ...children: VNode['children']
-): VNode {
-  // undefined나 null인 children 제거
-  const filteredChildren = children.filter((child) => child !== undefined && child !== null)
-  return h(type, props, ...filteredChildren)
-}
+export const jsxs = jsx
+export const jsxDev = jsx
 
-// React 호환성을 위한 default export
-const React = { jsx, jsxs, jsxDev }
-export default React
+export default { jsx, jsxs, jsxDev }
