@@ -4,7 +4,11 @@ export interface HookContext {
   hooks: any[]
   hookIndex: number
   prevVNode: VNode | string | null
-  effects?: any[]
+  effects?: Array<() => void>
+  layoutEffects?: Array<() => void>
+  insertionEffects?: Array<() => void>
+  rerender?: () => void
+  isServer?: boolean
 }
 
 let currentContext: HookContext | null = null
