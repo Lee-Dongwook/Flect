@@ -5,6 +5,7 @@ import { setRenderTarget } from '../../hooks/services/dispatcher'
 import { isRendering, pushRenderContext, popRenderContext } from '../model/renderContext'
 import { flushLayoutEffects, flushEffects } from '../../../domain/hooks/model/effectQueue'
 import { flushInsertionEffects } from '../../../domain/hooks/model/insertionEffectQueue'
+import { applyStyle } from '../../../platform/dom/services/applyProps/style'
 
 const componentContexts = new WeakMap<Function, HookContext>()
 
@@ -49,7 +50,9 @@ function renderElement(vnode: VNode, container: HTMLElement) {
 
   for (const [key, value] of Object.entries(vnode.props ?? {})) {
     if (key === 'children') continue
-    if (key.startsWith('on') && typeof value === 'function') {
+    if (key === 'style' && typeof value === 'object') {
+      applyStyle(el, value)
+    } else if (key.startsWith('on') && typeof value === 'function') {
       el.addEventListener(key.slice(2).toLowerCase(), value)
     } else if (key !== 'children') {
       el.setAttribute(key, String(value))
@@ -58,16 +61,14 @@ function renderElement(vnode: VNode, container: HTMLElement) {
 
   const children = vnode.props?.children ?? []
 
-  children.forEach((child) => {
-    console.log('Rendering child:', child)
+  for (const child of children) {
     if (child === null) throw new Error(`${child} is null`)
-
     if (typeof child === 'string' || typeof child === 'number' || typeof child === 'boolean') {
       el.appendChild(document.createTextNode(String(child)))
     } else if (child !== undefined && child !== null) {
       render(child, el, false)
     }
-  })
+  }
 
   container.appendChild(el)
 }
