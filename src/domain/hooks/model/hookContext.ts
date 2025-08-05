@@ -4,7 +4,7 @@ export interface HookContext {
   hooks: any[]
   hookIndex: number
   prevVNode: VNode | string | null
-  effects: any[]
+  effects?: any[]
 }
 
 let currentContext: HookContext | null = null

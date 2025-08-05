@@ -3,6 +3,7 @@ import { reconcile } from './reconcile'
 import { type HookContext, setCurrentContext, resetHookIndex } from '../../hooks/model/hookContext'
 import { setRenderTarget } from '../../hooks/services/dispatcher'
 import { isRendering, pushRenderContext, popRenderContext } from '../model/renderContext'
+import { flushLayoutEffects, flushEffects } from '../../../domain/hooks/model/effectQueue'
 
 const componentContexts = new WeakMap<Function, HookContext>()
 
@@ -29,6 +30,8 @@ function renderComponent(vnode: VNode, container: HTMLElement) {
 
       if (!shouldSkip) {
         render(nextVNode, container, true)
+        flushLayoutEffects()
+        flushEffects()
       }
     } finally {
       popRenderContext()
