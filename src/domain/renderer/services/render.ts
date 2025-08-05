@@ -1,6 +1,7 @@
 import type { VNode } from '../../vdom/model/vnode'
 import { type HookContext, setCurrentContext, resetHookIndex } from '../../hooks/model/hookContext'
 import { setRenderTarget } from '../../hooks/services/dispatcher'
+import { isRendering, pushRenderContext, popRenderContext } from '../model/renderContext'
 
 export function render(vnode: VNode | string, container: HTMLElement) {
   if (!vnode) {
@@ -16,13 +17,23 @@ export function render(vnode: VNode | string, container: HTMLElement) {
   const node = vnode as VNode
 
   if (typeof node.type === 'function') {
+    if (isRendering(node.type)) {
+      throw new Error(`Infinite render loop detected: <${node.type.name}>`)
+    }
+
     const ctx: HookContext = { hooks: [], hookIndex: 0 }
 
     function rerender() {
       container.innerHTML = ''
       setCurrentContext(ctx)
       resetHookIndex()
+
+      pushRenderContext(node.type as Function)
+
       const nextVNode = (node.type as Function)(node.props ?? {})
+
+      popRenderContext()
+
       render(nextVNode, container)
     }
 
@@ -43,12 +54,13 @@ export function render(vnode: VNode | string, container: HTMLElement) {
     }
   }
 
-  if (vnode.children && Array.isArray(vnode.children)) {
-    vnode.children.forEach((child) => {
+  if (node.children && Array.isArray(node.children)) {
+    node.children.forEach((child) => {
       if (child !== undefined && child !== null) {
         render(child, el)
       }
     })
   }
+
   container.appendChild(el)
 }
