@@ -2,7 +2,7 @@ import { getCurrentContext } from '../model/hookContext'
 
 export function useMemo<T>(factory: () => T, deps: any[]): T {
   const ctx = getCurrentContext()
-  if (!ctx) throw new Error('useRef must be used within a render context')
+  if (!ctx) throw new Error('useMemo must be used within a render context')
 
   const index = ctx.hookIndex++
 
