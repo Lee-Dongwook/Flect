@@ -1,5 +1,8 @@
 import { App } from './components/App'
-import { render } from '../domain/renderer/services/render'
+import { createRoot } from '../platform/dom/createRoot'
 
-const root = document.getElementById('root')!
-render(<App />, root)
+const container = document.getElementById('root')
+if (container) {
+  const root = createRoot(container)
+  root.render(<App />)
+}
