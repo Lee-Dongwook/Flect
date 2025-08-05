@@ -12,14 +12,15 @@ export function queueEffect(fn: EffectCallback) {
 }
 
 export function flushLayoutEffects() {
-  for (const fn of layoutEffectQueue) fn()
-  layoutEffectQueue.length = 0
+  while (layoutEffectQueue.length) {
+    const effect = layoutEffectQueue.shift()
+    effect?.()
+  }
 }
 
 export function flushEffects() {
-  const queue = [...effectQueue]
-  effectQueue.length = 0
-  Promise.resolve().then(() => {
-    for (const fn of queue) fn()
-  })
+  while (effectQueue.length) {
+    const effect = effectQueue.shift()
+    Promise.resolve().then(effect)
+  }
 }
