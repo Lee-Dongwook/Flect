@@ -1,29 +1,34 @@
 import { getCurrentContext } from '../model/hookContext'
+import { scheduleCallback } from '../../../domain/transitions/model/scheduler'
+import { setTransitionContext } from '../../../domain/transitions/model/transitionContext'
 
-let isPending: boolean = false
-let pendingCallback: (() => void) | null = null
-
-export function useTransition(): [boolean, (callback: () => void) => void] {
+export function useTransition(): [() => boolean, (callback: () => void) => void] {
   const ctx = getCurrentContext()
   if (!ctx) throw new Error('useTransition must be used within a render context')
 
   const index = ctx.hookIndex++
 
   if (!ctx.hooks[index]) {
-    ctx.hooks[index] = {}
+    ctx.hooks[index] = { isPending: false }
   }
+
+  const state = ctx.hooks[index]
 
   const startTransition = (callback: () => void) => {
-    isPending = true
-    pendingCallback = callback
+    state.isPending = true
 
-    Promise.resolve().then(() => {
-      if (pendingCallback) {
-        pendingCallback()
-        pendingCallback = null
+    setTransitionContext({
+      isPending: true,
+      startTransition,
+    })
+
+    scheduleCallback(() => {
+      try {
+        callback()
+      } finally {
+        state.isPending = false
       }
-      isPending = false
     })
   }
-  return [isPending, startTransition]
+  return [() => state.isPending, startTransition]
 }
