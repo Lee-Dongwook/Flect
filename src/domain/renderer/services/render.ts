@@ -4,6 +4,7 @@ import { type HookContext, setCurrentContext, resetHookIndex } from '../../hooks
 import { setRenderTarget } from '../../hooks/services/dispatcher'
 import { isRendering, pushRenderContext, popRenderContext } from '../model/renderContext'
 import { flushLayoutEffects, flushEffects } from '../../../domain/hooks/model/effectQueue'
+import { flushInsertionEffects } from '../../../domain/hooks/model/insertionEffectQueue'
 
 const componentContexts = new WeakMap<Function, HookContext>()
 
@@ -30,6 +31,7 @@ function renderComponent(vnode: VNode, container: HTMLElement) {
 
       if (!shouldSkip) {
         render(nextVNode, container, true)
+        flushInsertionEffects()
         flushLayoutEffects()
         flushEffects()
       }
