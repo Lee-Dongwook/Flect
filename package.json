@@ -5,15 +5,22 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "lint": "eslint src --ext .ts",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.4",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.2.0",
     "eslint": "^9.32.0",
     "eslint-plugin-unused-imports": "^4.1.4",
+    "jest": "^30.0.5",
     "prettier": "^3.6.2",
+    "ts-jest": "^29.4.1",
     "typescript": "~5.8.3",
     "vite": "^7.0.4"
   },
