@@ -1,26 +1,36 @@
 type EffectCallback = () => void
 
 const layoutEffectQueue: EffectCallback[] = []
-const effectQueue: EffectCallback[] = []
+const passiveEffectQueue: EffectCallback[] = []
 
-export function queueLayoutEffect(fn: EffectCallback) {
-  layoutEffectQueue.push(fn)
+export function queueLayoutEffect(callback: EffectCallback) {
+  layoutEffectQueue.push(callback)
 }
 
-export function queueEffect(fn: EffectCallback) {
-  effectQueue.push(fn)
+export function queueEffect(callback: EffectCallback) {
+  passiveEffectQueue.push(callback)
 }
 
 export function flushLayoutEffects() {
   while (layoutEffectQueue.length) {
     const effect = layoutEffectQueue.shift()
-    effect?.()
+    try {
+      effect?.()
+    } catch (e) {
+      console.error('layoutEffect error:', e)
+    }
   }
 }
 
 export function flushEffects() {
-  while (effectQueue.length) {
-    const effect = effectQueue.shift()
-    Promise.resolve().then(effect)
+  while (passiveEffectQueue.length) {
+    const effect = passiveEffectQueue.shift()
+    Promise.resolve().then(() => {
+      try {
+        effect?.()
+      } catch (e) {
+        console.error('effect error:', e)
+      }
+    })
   }
 }

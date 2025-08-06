@@ -1,13 +1,14 @@
-import { getCurrentContext } from '../model/hookContext'
+import { getCurrentFiber, getHookIndex } from '../model/hookContext'
 
 export function useRef<T>(initialValue: T): { current: T } {
-  const ctx = getCurrentContext()
-  if (!ctx) throw new Error('useRef must be used within a render context')
+  const fiber = getCurrentFiber()
+  const index = getHookIndex()
 
-  const index = ctx.hookIndex++
-  if (!ctx.hooks[index]) {
-    ctx.hooks[index] = { current: initialValue }
-  }
+  const prevHook = fiber.alternate?.memoizedState?.[index]
+  const ref = prevHook ?? { current: initialValue }
 
-  return ctx.hooks[index]
+  if (!fiber.memoizedState) fiber.memoizedState = []
+  fiber.memoizedState[index] = ref
+
+  return ref
 }

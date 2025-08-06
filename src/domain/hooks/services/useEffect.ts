@@ -1,33 +1,35 @@
-import { getCurrentContext } from '../model/hookContext'
+import { getCurrentFiber, getHookIndex } from '../model/hookContext'
 import { queueEffect } from '../model/effectQueue'
 
-export function useEffect(effect: () => void | (() => void), deps: any[] = []) {
-  const ctx = getCurrentContext()
-  if (!ctx) throw new Error('useEffect must be used within a render context')
+export function useEffect(effect: () => void | (() => void), deps: any[]) {
+  const fiber = getCurrentFiber()
+  const index = getHookIndex()
 
-  const index = ctx.hookIndex++
-  const prev = ctx.hooks[index]
-  const prevDeps = prev?.deps
-  const hasChanged = !prevDeps || !deps.every((dep, i) => Object.is(dep, prevDeps[i]))
+  const prevHook = fiber.alternate?.memoizedState?.[index]
+  const prevDeps = prevHook?.deps
 
-  // Initialize effects array if not exists
-  if (!ctx.effects) {
-    ctx.effects = []
+  let hasChanged = true
+  if (prevDeps) {
+    hasChanged = deps.some((dep, i) => !Object.is(dep, prevDeps[i]))
   }
 
-  // Register effect function for testing
-  ctx.effects.push(() => {
-    if (prev?.cleanup) prev.cleanup()
-    const cleanup = effect()
-    ctx.hooks[index] = { deps, cleanup }
-  })
+  const hook = {
+    deps,
+    effect,
+    cleanup: null as (() => void) | null,
+  }
+
+  if (!fiber.memoizedState) fiber.memoizedState = []
+  fiber.memoizedState[index] = hook
 
   // Queue effect for execution if dependencies changed
   if (hasChanged) {
     queueEffect(() => {
-      if (prev?.cleanup) prev.cleanup()
+      if (hook.cleanup) hook.cleanup()
       const cleanup = effect()
-      ctx.hooks[index] = { deps, cleanup }
+      if (typeof cleanup === 'function') {
+        hook.cleanup = cleanup
+      }
     })
   }
 }
