@@ -1,4 +1,4 @@
-import type { VNode } from '../../vdom/model/vnode'
+import { createFiberFromVNode, type VNode } from '../../vdom/model/vnode'
 import { reconcile } from './reconcile'
 import { type HookContext, setCurrentContext, resetHookIndex } from '../../hooks/model/hookContext'
 import { setRenderTarget } from '../../hooks/services/dispatcher'
@@ -13,6 +13,7 @@ import { flushInsertionEffects } from '../../../domain/hooks/model/insertionEffe
 import { applyStyle } from '../../../platform/dom/services/applyProps/style'
 import { isErrorBoundary } from '../../../shared/isErrorBoundary'
 import { errorBoundaryContexts } from '../../../platform/error/view/ErrorBoundary'
+import { scheduleUpdateOnFiber } from '../../vdom/model/workLoop'
 
 const componentContexts = new WeakMap<Function, HookContext>()
 
@@ -122,31 +123,14 @@ function renderElement(vnode: VNode, container: HTMLElement) {
   container.appendChild(el)
 }
 
-export function render(
-  vnode: VNode | string | number | boolean,
-  container: HTMLElement,
-  isRoot = true
-) {
+export function render(vnode: VNode | string | number | boolean, container: HTMLElement) {
   if (!vnode) {
     console.warn('render: vnode is undefined or null')
     return
   }
 
-  if (isRoot) container.innerHTML = ''
+  const rootFiber = createFiberFromVNode(vnode as VNode)
+  rootFiber.stateNode = container
 
-  if (typeof vnode === 'string' || typeof vnode === 'number' || typeof vnode === 'boolean') {
-    container.appendChild(document.createTextNode(String(vnode)))
-    return
-  }
-
-  const node = vnode as VNode
-
-  if (typeof node.type === 'function') {
-    if (isRendering(node.type)) {
-      throw new Error(`Infinite render loop detected: <${node.type.name}>`)
-    }
-    renderComponent(node, container)
-  } else {
-    renderElement(node, container)
-  }
+  scheduleUpdateOnFiber(rootFiber)
 }
