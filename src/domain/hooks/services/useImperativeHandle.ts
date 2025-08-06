@@ -2,7 +2,7 @@ import { getCurrentContext } from '../model/hookContext'
 import { queueLayoutEffect } from '../model/effectQueue'
 
 export function useImperativeHandle<T>(
-  ref: { current: T | null } | ((inst: T | null) => void) | null | undefined,
+  ref: { current: T | null } | null | undefined,
   create: () => T,
   deps: any[] = []
 ) {
@@ -15,14 +15,11 @@ export function useImperativeHandle<T>(
 
   if (hasChanged) {
     queueLayoutEffect(() => {
-      const instance = create()
-
-      if (typeof ref === 'function') {
-        ref(instance)
-      } else if (ref && 'current' in ref) {
-        ref.current = instance
+      if (ref != null) {
+        ref.current = create()
       }
-      ctx.hooks[index] = { deps }
     })
+
+    ctx.hooks[index] = { deps }
   }
 }

@@ -3,6 +3,7 @@ import { flushLayoutEffects, flushEffects } from '../../hooks/model/effectQueue'
 import { flushInsertionEffects } from '../../hooks/model/insertionEffectQueue'
 import { Placement, Update, Deletion } from '../../renderer/lib/flag'
 import { updateDomProperties } from '../../../platform/dom/helpers/updateDomProperties'
+import { commitRef } from '../../renderer/services/commitRef'
 
 export function commitWork(fiber: FiberNode) {
   if ((fiber.flags & Placement) !== 0) {
@@ -31,6 +32,8 @@ export function commitWork(fiber: FiberNode) {
   if (fiber.sibling) {
     commitWork(fiber.sibling)
   }
+
+  commitRef(fiber)
 }
 
 export function commitRoot(rootFiber: FiberNode) {
