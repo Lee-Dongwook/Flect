@@ -1,24 +1,22 @@
-import { getCurrentContext } from '../model/hookContext'
+import { getCurrentFiber, getHookIndex } from '../model/hookContext'
 
 export function useMemo<T>(factory: () => T, deps: any[]): T {
-  const ctx = getCurrentContext()
-  if (!ctx) throw new Error('useMemo must be used within a render context')
+  const fiber = getCurrentFiber()
+  const index = getHookIndex()
 
-  const index = ctx.hookIndex++
+  const prevHook = fiber.alternate?.memoizedState?.[index]
+  const prevDeps = prevHook?.deps
+  const prevValue = prevHook?.value
 
-  const prev = ctx.hooks[index] as { deps: any[]; value: T } | undefined
-
-  if (prev) {
-    const hasChanged = !areDepsEqual(prev.deps, deps)
-    if (!hasChanged) return prev.value
+  let hasChanged = true
+  if (prevDeps) {
+    hasChanged = deps.some((dep, i) => !Object.is(dep, prevDeps[i]))
   }
 
-  const value = factory()
-  ctx.hooks[index] = { deps, value }
-  return value
-}
+  const value = hasChanged ? factory() : prevValue
 
-function areDepsEqual(prevDeps: any[], nextDeps: any[]) {
-  if (prevDeps.length !== nextDeps.length) return false
-  return prevDeps.every((dep, i) => Object.is(dep, nextDeps[i]))
+  if (!fiber.memoizedState) fiber.memoizedState = []
+  fiber.memoizedState[index] = { deps, value }
+
+  return value
 }
