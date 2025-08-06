@@ -1,25 +1,38 @@
-import { getCurrentContext } from '../model/hookContext'
-import { triggerRerender } from './dispatcher'
+import { getCurrentFiber, getHookIndex } from '../model/hookContext'
 
-export function useReducer<R, S, A = any>(
+interface Update<S> {
+  action: any
+  nextState: S
+}
+
+export function useReducer<S, A>(
   reducer: (state: S, action: A) => S,
   initialState: S
 ): [S, (action: A) => void] {
-  const ctx = getCurrentContext()
-  if (!ctx) throw new Error('useReducer must be used within a render context')
+  const fiber = getCurrentFiber()
+  const index = getHookIndex()
 
-  const index = ctx.hookIndex++
+  const prevHook = fiber.alternate?.memoizedState?.[index]
+  const prevState = prevHook?.memoizedState ?? initialState
 
-  if (ctx.hooks.length <= index) {
-    ctx.hooks[index] = initialState
+  function dispatch(action: A) {
+    const nextState = reducer(fiber.memoizedState![index].memoizedState, action)
+    fiber.memoizedState![index].memoizedState = nextState
+
+    fiber.pendingProps = fiber.memoizedProps
+
+    import('../../vdom/model/workLoop').then(({ scheduleUpdateOnFiber }) => {
+      scheduleUpdateOnFiber(fiber)
+    })
   }
 
-  const dispatch = (action: A) => {
-    const prevState = ctx.hooks[index]
-    const nextState = reducer(prevState, action)
-    ctx.hooks[index] = nextState
-    triggerRerender()
+  const hook = {
+    memoizedState: prevState,
+    queue: [] as Update<S>[],
   }
 
-  return [ctx.hooks[index], dispatch]
+  if (!fiber.memoizedState) fiber.memoizedState = []
+  fiber.memoizedState[index] = hook
+
+  return [hook.memoizedState, dispatch]
 }
