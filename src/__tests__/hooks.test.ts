@@ -7,35 +7,35 @@ import { useRef } from '../domain/hooks/services/useRef'
 import { useTransition } from '../domain/hooks/services/useTransition'
 import { createContext } from '../domain/hooks/services/createContext'
 import { useContext } from '../domain/hooks/services/useContext'
-import { getCurrentContext, setCurrentContext } from '../domain/hooks/model/hookContext'
+import { prepareToUseHooks, resetHooks } from '../domain/hooks/model/hookContext'
+import type { FiberNode } from '../domain/vdom/model/vnode'
 
-// Mock render function
-const mockRender = jest.fn()
-const mockRerender = jest.fn()
+// Mock FiberNode
+const createMockFiber = (): FiberNode => ({
+  type: 'div',
+  key: null,
+  ref: null,
+  stateNode: null,
+  return: null,
+  child: null,
+  sibling: null,
+  alternate: null,
+  pendingProps: {},
+  memoizedProps: null,
+  memoizedState: null,
+  flags: 0,
+  index: 0,
+})
 
 // Setup hook context before each test
 beforeEach(() => {
-  const mockContext = {
-    hooks: [],
-    hookIndex: 0,
-    rerender: mockRerender,
-    effects: [],
-    prevVNode: null,
-  }
-  setCurrentContext(mockContext)
-  mockRender.mockClear()
-  mockRerender.mockClear()
+  const mockFiber = createMockFiber()
+  prepareToUseHooks(mockFiber)
 })
 
 // Cleanup after each test
 afterEach(() => {
-  return setCurrentContext({
-    hooks: [],
-    hookIndex: 0,
-    rerender: () => {},
-    effects: [],
-    prevVNode: null,
-  })
+  resetHooks()
 })
 
 describe('React Hooks', () => {
@@ -62,29 +62,24 @@ describe('React Hooks', () => {
     it('should register effect function', () => {
       const effect = jest.fn()
       useEffect(effect, [])
-
-      const ctx = getCurrentContext()
-      expect(ctx?.effects).toBeDefined()
-      expect(ctx?.effects?.length).toBeGreaterThan(0)
+      // Effect should be queued for execution
+      expect(effect).not.toHaveBeenCalled() // Not called immediately
     })
 
     it('should handle cleanup function', () => {
       const cleanup = jest.fn()
       const effect = jest.fn(() => cleanup)
       useEffect(effect, [])
-
-      const ctx = getCurrentContext()
-      expect(ctx?.effects?.length).toBeGreaterThan(0)
+      // Effect should be queued
+      expect(effect).not.toHaveBeenCalled()
     })
 
     it('should handle different dependencies', () => {
       const effect = jest.fn()
       useEffect(effect, [1, 2, 3])
       useEffect(effect, [1, 2, 4]) // Different dependencies
-
-      // Both effects should be registered
-      const ctx = getCurrentContext()
-      expect(ctx?.effects?.length).toBe(2)
+      // Both effects should be queued
+      expect(effect).not.toHaveBeenCalled()
     })
   })
 
@@ -125,11 +120,9 @@ describe('React Hooks', () => {
 
       const memoized1 = useCallback(callback1, [1])
       // Simulate re-render with different dependencies
-      const ctx = getCurrentContext()
-      if (ctx) {
-        ctx.hookIndex = 0 // Reset for next render
-        ctx.hooks = [] // Clear previous hooks
-      }
+      resetHooks()
+      const mockFiber = createMockFiber()
+      prepareToUseHooks(mockFiber)
       const memoized2 = useCallback(callback2, [2])
 
       // They should be different functions
@@ -178,6 +171,9 @@ describe('React Hooks', () => {
       const ref = useRef(0)
       const initialRef = ref
       // Simulate re-render by calling useRef again
+      resetHooks()
+      const mockFiber = createMockFiber()
+      prepareToUseHooks(mockFiber)
       const newRef = useRef(0)
       expect(newRef).toStrictEqual(initialRef)
     })

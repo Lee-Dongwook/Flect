@@ -1,30 +1,27 @@
-import { getCurrentContext, setCurrentContext } from '../model/hookContext'
+import { getCurrentFiber, getHookIndex } from '../model/hookContext'
 import { scheduleCallback, NormalPriority } from '../../../platform/scheduler'
 
 export function useTransition(): [() => boolean, (callback: () => void) => void] {
-  const ctx = getCurrentContext()
-  if (!ctx) throw new Error('useTransition must be used within a render context')
+  const fiber = getCurrentFiber()
+  const index = getHookIndex()
 
-  const index = ctx.hookIndex++
+  const prevHook = fiber.alternate?.memoizedState?.[index]
+  const hook = prevHook ?? { isPending: false }
 
-  if (!ctx.hooks[index]) {
-    ctx.hooks[index] = { isPending: false }
-  }
-
-  const state = ctx.hooks[index]
+  if (!fiber.memoizedState) fiber.memoizedState = []
+  fiber.memoizedState[index] = hook
 
   const startTransition = (callback: () => void) => {
-    state.isPending = true
+    hook.isPending = true
 
     scheduleCallback(NormalPriority, () => {
       try {
-        setCurrentContext(ctx)
         callback()
       } finally {
-        state.isPending = false
+        hook.isPending = false
       }
     })
   }
 
-  return [() => state.isPending, startTransition]
+  return [() => hook.isPending, startTransition]
 }

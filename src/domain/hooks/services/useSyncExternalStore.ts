@@ -1,42 +1,17 @@
-import { getCurrentContext } from '../model/hookContext'
-import { useEffect } from './useEffect'
+import { getCurrentFiber, getHookIndex } from '../model/hookContext'
 
 export function useSyncExternalStore<T>(
-  subscribe: (onStoreChange: () => void) => () => void,
-  getSnapshot: () => T,
-  getServerSnapshot?: () => T
+  subscribe: (callback: () => void) => () => void,
+  getSnapshot: () => T
 ): T {
-  const ctx = getCurrentContext()
-  if (!ctx) throw new Error('useSyncExternalStore must be used within a render context')
+  const fiber = getCurrentFiber()
+  const index = getHookIndex()
 
-  const index = ctx.hookIndex++
-  const isServer = typeof window === 'undefined'
-  const snapshot = isServer && getServerSnapshot ? getServerSnapshot() : getSnapshot()
+  const prevHook = fiber.alternate?.memoizedState?.[index]
+  const snapshot = prevHook ?? getSnapshot()
 
-  if (!ctx.hooks[index]) {
-    ctx.hooks[index] = { value: snapshot }
-  }
+  if (!fiber.memoizedState) fiber.memoizedState = []
+  fiber.memoizedState[index] = snapshot
 
-  const state = ctx.hooks[index]
-
-  if (state.value !== snapshot) {
-    state.value = snapshot
-  }
-
-  useEffect(() => {
-    function checkForUpdates() {
-      const nextSnapshot = getSnapshot()
-      if (nextSnapshot !== state.value) {
-        state.value = nextSnapshot
-        ctx?.rerender?.()
-      }
-    }
-
-    const unsubscribe = subscribe(checkForUpdates)
-    checkForUpdates()
-
-    return unsubscribe
-  }, [subscribe, getSnapshot])
-
-  return state.value
+  return snapshot
 }

@@ -1,17 +1,14 @@
-import { getCurrentContext } from '../model/hookContext'
-
-let globalIdCounter = 0
+import { getCurrentFiber, getHookIndex } from '../model/hookContext'
 
 export function useId(): string {
-  const ctx = getCurrentContext()
-  if (!ctx) throw new Error('useId must be used within a render context')
+  const fiber = getCurrentFiber()
+  const index = getHookIndex()
 
-  const index = ctx.hookIndex++
+  const prevHook = fiber.alternate?.memoizedState?.[index]
+  const id = prevHook ?? `flect-${Math.random().toString(36).substr(2, 9)}`
 
-  if (!ctx.hooks[index]) {
-    const newId = `uid-${globalIdCounter++}`
-    ctx.hooks[index] = { id: newId }
-  }
+  if (!fiber.memoizedState) fiber.memoizedState = []
+  fiber.memoizedState[index] = id
 
-  return ctx.hooks[index].id
+  return id
 }

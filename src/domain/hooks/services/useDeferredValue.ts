@@ -1,22 +1,14 @@
-import { getCurrentContext } from '../model/hookContext'
-import { scheduleCallback, IdlePriority } from '../../../platform/scheduler'
+import { getCurrentFiber, getHookIndex } from '../model/hookContext'
 
 export function useDeferredValue<T>(value: T): T {
-  const ctx = getCurrentContext()
-  if (!ctx) throw new Error('useDeferredValue must be used within a render context')
+  const fiber = getCurrentFiber()
+  const index = getHookIndex()
 
-  const index = ctx.hookIndex++
+  const prevHook = fiber.alternate?.memoizedState?.[index]
+  const deferredValue = prevHook ?? value
 
-  const hook = ctx.hooks[index] ?? { value, deferredValue: value }
+  if (!fiber.memoizedState) fiber.memoizedState = []
+  fiber.memoizedState[index] = deferredValue
 
-  ctx.hooks[index] = hook
-
-  if (value !== hook.value) {
-    hook.value = value
-
-    scheduleCallback(IdlePriority, () => {
-      hook.deferredValue = hook.value
-    })
-  }
-  return hook.deferredValue
+  return deferredValue
 }

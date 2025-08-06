@@ -1,14 +1,14 @@
 import { FiberNode } from './vnode'
 import { beginWork } from './beginWork'
 import { completeWork } from './completeWork'
-import { commitWork } from './commitWork'
+import { commitRoot } from './commitWork'
 
 let workInProgress: FiberNode | null = null
 
 export function scheduleUpdateOnFiber(rootFiber: FiberNode) {
   workInProgress = rootFiber
   workLoop()
-  commitWork(rootFiber.child!)
+  commitRoot(rootFiber)
 }
 
 function workLoop() {

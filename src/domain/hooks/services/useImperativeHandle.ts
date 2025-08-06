@@ -1,25 +1,35 @@
-import { getCurrentContext } from '../model/hookContext'
-import { queueLayoutEffect } from '../model/effectQueue'
+import { getCurrentFiber, getHookIndex } from '../model/hookContext'
 
-export function useImperativeHandle<T>(
-  ref: { current: T | null } | null | undefined,
-  create: () => T,
-  deps: any[] = []
-) {
-  const ctx = getCurrentContext()
-  if (!ctx) throw new Error('useImperativeHandle must be used within a render context')
+export function useImperativeHandle<T, R extends T>(
+  ref: { current: T | null } | ((instance: T | null) => void) | null,
+  init: () => R,
+  deps?: ReadonlyArray<any>
+): void {
+  const fiber = getCurrentFiber()
+  const index = getHookIndex()
 
-  const index = ctx.hookIndex++
-  const prevDeps = ctx.hooks[index]?.deps
-  const hasChanged = !prevDeps || !deps.every((dep, i) => Object.is(dep, prevDeps[i]))
+  const prevHook = fiber.alternate?.memoizedState?.[index]
+  const prevDeps = prevHook?.deps
 
-  if (hasChanged) {
-    queueLayoutEffect(() => {
-      if (ref != null) {
-        ref.current = create()
-      }
-    })
+  let hasChanged = true
+  if (prevDeps && deps) {
+    hasChanged = deps.some((dep, i) => !Object.is(dep, prevDeps[i]))
+  }
 
-    ctx.hooks[index] = { deps }
+  const hook = {
+    deps,
+    ref,
+    init,
+  }
+
+  if (!fiber.memoizedState) fiber.memoizedState = []
+  fiber.memoizedState[index] = hook
+
+  if (hasChanged && ref) {
+    if (typeof ref === 'function') {
+      ref(init())
+    } else {
+      ref.current = init()
+    }
   }
 }

@@ -1,15 +1,17 @@
-import { getCurrentContext } from '../../../domain/hooks/model/hookContext'
+import { getCurrentFiber, getHookIndex } from '../../../domain/hooks/model/hookContext'
 import { registerStyle } from './registerStyle'
+import { injectStyle } from './injectStyle'
 
-export function useStyle(styleObj: Record<string, any>): { className: string } {
-  const ctx = getCurrentContext()
-  if (!ctx) throw new Error('useStyle must be used within a render context')
+export function useStyle(css: string): string {
+  const fiber = getCurrentFiber()
+  const index = getHookIndex()
 
-  const index = ctx.hookIndex++
-  if (!ctx.hooks[index]) {
-    const className = registerStyle(styleObj)
-    ctx.hooks[index] = { className }
-  }
+  const prevHook = fiber.alternate?.memoizedState?.[index]
+  const className = prevHook ?? registerStyle(css)
 
-  return { className: ctx.hooks[index].className }
+  if (!fiber.memoizedState) fiber.memoizedState = []
+  fiber.memoizedState[index] = className
+
+  injectStyle(css, className)
+  return className
 }

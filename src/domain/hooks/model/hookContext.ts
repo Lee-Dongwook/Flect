@@ -4,9 +4,8 @@ let currentlyRenderingFiber: FiberNode | null = null
 let hookIndex = 0
 
 export interface HookContext {
-  hooks: any[]
+  fiber: FiberNode
   hookIndex: number
-  prevVNode: FiberNode | string | null
   effects?: Array<() => void>
   layoutEffects?: Array<() => void>
   insertionEffects?: Array<() => void>
