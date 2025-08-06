@@ -2,10 +2,17 @@ import type { VNode } from '../../vdom/model/vnode'
 import { reconcile } from './reconcile'
 import { type HookContext, setCurrentContext, resetHookIndex } from '../../hooks/model/hookContext'
 import { setRenderTarget } from '../../hooks/services/dispatcher'
-import { isRendering, pushRenderContext, popRenderContext } from '../model/renderContext'
+import {
+  isRendering,
+  pushRenderContext,
+  popRenderContext,
+  getRenderStack,
+} from '../model/renderContext'
 import { flushLayoutEffects, flushEffects } from '../../../domain/hooks/model/effectQueue'
 import { flushInsertionEffects } from '../../../domain/hooks/model/insertionEffectQueue'
 import { applyStyle } from '../../../platform/dom/services/applyProps/style'
+import { isErrorBoundary } from '../../../shared/isErrorBoundary'
+import { errorBoundaryContexts } from '../../../platform/error/view/ErrorBoundary'
 
 const componentContexts = new WeakMap<Function, HookContext>()
 
@@ -36,6 +43,15 @@ function renderComponent(vnode: VNode, container: HTMLElement) {
         flushLayoutEffects()
         flushEffects()
       }
+    } catch (error) {
+      // 에러가 발생했을 때 ErrorBoundary 처리
+      const errorBoundary = findNearestErrorBoundary(component)
+      if (errorBoundary) {
+        handleErrorBoundaryError(errorBoundary, error as Error, container)
+      } else {
+        // ErrorBoundary가 없으면 에러를 다시 던짐
+        throw error
+      }
     } finally {
       popRenderContext()
     }
@@ -43,6 +59,39 @@ function renderComponent(vnode: VNode, container: HTMLElement) {
 
   setRenderTarget(rerender)
   rerender()
+}
+
+function findNearestErrorBoundary(component: Function): Function | null {
+  // 현재 컴포넌트가 ErrorBoundary인지 확인
+  if (isErrorBoundary(component)) {
+    return component
+  }
+
+  // 렌더링 스택에서 가장 가까운 ErrorBoundary 찾기
+  const renderStack = getRenderStack()
+  for (let i = renderStack.length - 1; i >= 0; i--) {
+    const stackComponent = renderStack[i]
+    if (isErrorBoundary(stackComponent)) {
+      return stackComponent
+    }
+  }
+
+  return null
+}
+
+function handleErrorBoundaryError(errorBoundary: Function, error: Error, container: HTMLElement) {
+  const errorCtx = errorBoundaryContexts.get(errorBoundary)
+  if (!errorCtx) {
+    console.error('ErrorBoundary context not found')
+    return
+  }
+
+  errorCtx.error = error
+
+  // fallback 렌더링
+  const fallback = typeof errorCtx.fallback === 'function' ? errorCtx.fallback() : errorCtx.fallback
+
+  render(fallback, container, true)
 }
 
 function renderElement(vnode: VNode, container: HTMLElement) {

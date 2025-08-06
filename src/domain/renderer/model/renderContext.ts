@@ -11,3 +11,7 @@ export function popRenderContext() {
 export function isRendering(component: Function): boolean {
   return renderStack.includes(component)
 }
+
+export function getRenderStack(): Function[] {
+  return [...renderStack] // 복사본 반환
+}
