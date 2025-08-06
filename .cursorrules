@@ -1,0 +1,65 @@
+# Flect Deveopment Rules
+
+You are an expert developer proficient in Typescript, React, React-dom, Expo (React Native), Supabase, Redux-toolkit, Tanstack React Query.
+
+The ultimate goal of this project is to **fully reimplement React, React-DOM, React Native, Redux Toolkit and related systems using Vanilla JS + TS, powered by Vite**
+
+## Code Style and Structure
+
+- Use **TypeScript** for all project code.
+- Use **DDD (Domain-Driven-Development)** for all architectural structuring.
+- Do not install or depend on libraries that we aim to reimplement (e.g., React, React-DOM, Redux Toolkit, etc.).
+- Avoid class-based design; use **pure functions**, **composition** and **declarative logic**
+- Prefer iteration and modularaization over code duplication.
+- Use **named exports** for functions, components, constants.
+- Use `interface` for props and data shapes.
+- Avoid `enum`; use `as const` with string literal unions or map objects.
+- Prefer `function` keyword for top-level pure functions.
+- Use descriptive names with intent (e.g., `hasAudio`, `isStreaming`, `shouldLoadTTS`).
+
+## React Feature Fidelity
+
+- Base all hook APIs and behaviors on React 19.
+- Match the exact signature and behavior of official React APIs (e.g. `useState`, `useEffect`, `useTransition`).
+- Each hook should mimic internal React mechanisms (e.g. `ReactFiberHooks`, `ReactCurrentDispatcher`).
+- Use a custom JSX runtime under `platform/jsx-runtime/*`.
+
+## Rendering & Scheduling Rules
+
+- `render()` must perform **reconciler-based diffing** and **prevent infinite re-renders**
+- Scheduling must be based on a custom Scheduler clone with: `taskQueue`, `timerQueue`, `shouldYieldToHost`, priority levels, `scheduleCallback`, `flushSync`, `cancelCallback`, `runWithPriority` and etc.
+- Re-render timing must follow React's **concurrent rendering behavior**, with accurate expiration and timeout handling.
+
+## DOM Behavior Rules
+
+- Recreate all DOM behaviors from ReactDOM: `render()`, `hydrate()`, `createPortal()` and root management.
+- Attribute/prop mapping must mimic ReactDOM: (e.g. `className`, `htmlFor`, `style`, `onClick`).
+- Effect-related hooks must follow commit phase timing:
+  - useEffect (after paint)
+  - useLayoutEffect (before paint)
+  - useInsertionEffect (before layout effects).
+
+## Hook Context and Internals
+
+- Hooks must use a central `HookContext` with : `hooks[]`, `hookIndex`, `prevVnode`, `effects[]` and sth else.
+- Each hook must be registered in a strict call order (tracked by `hookIndex`) to prevent desync.
+- Side effects must be separated : `effectQueue`, `layoutEffectQueue`, `insertionEffectQueue`
+- `createContext`, `useContext` must support subscription-based updates and Provider-Consumer diffing.
+
+## API Compatibility & Interop
+
+- Public API must be 1:1 compatible with React and ReactDOM.
+- Support for `React.createElement`, `useRef`, `memo`, `forwardRef` and all other standard React API must eventually be included.
+
+## Redux Toolkit Reimplementation Rules
+
+- Flect aims to fully reimplement `Redux Toolkit` using Vanilla JS + TS -- including its core primitives, `configureStore`, `createSlice`, `createAsyncThunk` and its opinionated integration with React.
+- Middleware registration, devtools toggling and enhancers must behave **exactly** like in Redux Toolkit.
+- Middleware chaining must follow Redux’s middleware pipeline logic.
+- Support for extraReducers, **builder.addCase**, and action matchers must be included.
+- The goal is to ensure a complete clone of Redux Toolkit and its dev ergonomics — but with zero dependencies, clean VanillaJS + TS logic, and full domain-based structure.
+
+## Testing Debugging
+
+- All core modules must be **unit tested**, including: `hook lifecycle`, `VNode updates`, `render diffing`, `schdeuling and prioritization`
+- Enable optional debug utilities under `__DEV__` to log: `hook execution traces`, `VNode trees`, `effect flushing behavior`
