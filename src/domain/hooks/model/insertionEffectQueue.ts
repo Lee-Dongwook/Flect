@@ -1,12 +1,12 @@
-type EffectCallback = () => void
+const insertionEffectQueue: (() => void)[] = []
 
-const insertionEffectQueue: EffectCallback[] = []
-
-export function queueInsertionEffect(fn: EffectCallback) {
+export function queueInsertionEffect(fn: () => void) {
   insertionEffectQueue.push(fn)
 }
 
 export function flushInsertionEffects() {
-  for (const fn of insertionEffectQueue) fn()
-  insertionEffectQueue.length = 0
+  while (insertionEffectQueue.length) {
+    const effect = insertionEffectQueue.shift()
+    effect?.()
+  }
 }
