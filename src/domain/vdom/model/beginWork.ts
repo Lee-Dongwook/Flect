@@ -1,5 +1,6 @@
-import { createFiberFromVNode, FiberNode } from './vnode'
+import { FiberNode } from './vnode'
 import { prepareToUseHooks, resetHooks } from '../../hooks/model/hookContext'
+import { reconcileChildren } from '../../renderer/services/reconcileChildren'
 
 export function beginWork(fiber: FiberNode): FiberNode | null {
   const { type, pendingProps } = fiber
@@ -10,40 +11,12 @@ export function beginWork(fiber: FiberNode): FiberNode | null {
     resetHooks()
 
     if (!childrenVNode || typeof childrenVNode === 'boolean') return null
-
-    const childFiber = createFiberFromVNode(childrenVNode)
-    childFiber.return = fiber
-    fiber.child = childFiber
-    return childFiber
+    reconcileChildren(fiber, childrenVNode)
+    return fiber.child
   }
 
   if (typeof type === 'string') {
-    const children = pendingProps?.children
-
-    if (Array.isArray(children)) {
-      let previousFiber: FiberNode | null = null
-
-      children.forEach((childVNode, index) => {
-        if (childVNode == null || typeof childVNode === 'boolean') return
-
-        const childFiber = createFiberFromVNode(childVNode)
-        childFiber.return = fiber
-        childFiber.index = index
-
-        if (previousFiber === null) {
-          fiber.child = childFiber
-        } else {
-          previousFiber.sibling = childFiber
-        }
-
-        previousFiber = childFiber
-      })
-    } else if (children != null && typeof children !== 'boolean') {
-      const childFiber = createFiberFromVNode(children)
-      childFiber.return = fiber
-      fiber.child = childFiber
-    }
-
+    reconcileChildren(fiber, pendingProps?.children)
     return fiber.child
   }
 

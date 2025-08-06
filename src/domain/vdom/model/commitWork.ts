@@ -1,8 +1,8 @@
 import { FiberNode } from './vnode'
 import { flushLayoutEffects, flushEffects } from '../../hooks/model/effectQueue'
 import { flushInsertionEffects } from '../../hooks/model/insertionEffectQueue'
-
-const Placement = 1 << 0
+import { Placement, Update, Deletion } from '../../renderer/lib/flag'
+import { updateDomProperties } from '../../../platform/dom/helpers/updateDomProperties'
 
 export function commitWork(fiber: FiberNode) {
   if ((fiber.flags & Placement) !== 0) {
@@ -10,6 +10,18 @@ export function commitWork(fiber: FiberNode) {
     if (parentFiber?.stateNode && fiber.stateNode) {
       parentFiber.stateNode.appendChild(fiber.stateNode)
     }
+  }
+
+  if ((fiber.flags & Update) !== 0) {
+    updateDomProperties(fiber.stateNode, fiber.memoizedProps || {}, fiber.pendingProps || {})
+  }
+
+  if ((fiber.flags & Deletion) !== 0) {
+    const parentFiber = getHostParentFiber(fiber)
+    if (parentFiber?.stateNode && fiber.stateNode) {
+      parentFiber.stateNode.removeChild(fiber.stateNode)
+    }
+    return
   }
 
   if (fiber.child) {
