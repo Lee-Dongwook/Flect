@@ -1,10 +1,16 @@
 import { createFiberFromVNode, FiberNode } from './vnode'
+import { prepareToUseHooks, resetHooks } from '../../hooks/model/hookContext'
 
 export function beginWork(fiber: FiberNode): FiberNode | null {
   const { type, pendingProps } = fiber
 
   if (typeof type === 'function') {
+    prepareToUseHooks(fiber)
     const childrenVNode = type(pendingProps)
+    resetHooks()
+
+    if (!childrenVNode || typeof childrenVNode === 'boolean') return null
+
     const childFiber = createFiberFromVNode(childrenVNode)
     childFiber.return = fiber
     fiber.child = childFiber
@@ -18,13 +24,15 @@ export function beginWork(fiber: FiberNode): FiberNode | null {
       let previousFiber: FiberNode | null = null
 
       children.forEach((childVNode, index) => {
+        if (childVNode == null || typeof childVNode === 'boolean') return
+
         const childFiber = createFiberFromVNode(childVNode)
         childFiber.return = fiber
         childFiber.index = index
 
-        if (index === 0) {
+        if (previousFiber === null) {
           fiber.child = childFiber
-        } else if (previousFiber) {
+        } else {
           previousFiber.sibling = childFiber
         }
 

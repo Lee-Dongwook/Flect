@@ -1,22 +1,23 @@
-import { getCurrentContext } from '../model/hookContext'
-import { triggerRerender } from './dispatcher'
+import { getCurrentFiber, getHookIndex } from '../model/hookContext'
 
-export function useState<T>(initialValue: T): [T, (val: T | ((prev: T) => T)) => void] {
-  const ctx = getCurrentContext()
-  if (!ctx) throw new Error('useState must be used within a render context')
+export function useState<S>(initialValue: S): [S, (newState: S) => void] {
+  const fiber = getCurrentFiber()
+  const index = getHookIndex()
 
-  const index = ctx.hookIndex++
-  if (ctx.hooks.length <= index) {
-    ctx.hooks[index] = initialValue
+  const oldHookState = fiber.alternate?.memoizedState?.[index]
+  const hookState = oldHookState ?? initialValue
+
+  const setState = (newState: S) => {
+    fiber.memoizedState![index] = newState
+
+    fiber.pendingProps = fiber.memoizedProps
+    import('../../vdom/model/workLoop').then(({ scheduleUpdateOnFiber }) => {
+      scheduleUpdateOnFiber(fiber)
+    })
   }
 
-  const setState = (newVal: T | ((prev: T) => T)) => {
-    const currentValue = ctx.hooks[index]
-    const nextValue =
-      typeof newVal === 'function' ? (newVal as (prev: T) => T)(currentValue) : newVal
-    ctx.hooks[index] = nextValue
-    triggerRerender()
-  }
+  if (!fiber.memoizedState) fiber.memoizedState = []
+  fiber.memoizedState[index] = hookState
 
-  return [ctx.hooks[index], setState]
+  return [hookState, setState]
 }
