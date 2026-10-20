@@ -1,0 +1,14 @@
+{
+  "name": "babel-cli",
+  "version": "0.1.0",
+  "description": "@babel/cli 기반 재구성 라이브러리",
+  "author": "The Babel Team (https://babel.dev/team)",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "babel": "./bin/babel.js"
+  },
+  "exports": {
+    "./package.json": "./package.json"
+  }
+}

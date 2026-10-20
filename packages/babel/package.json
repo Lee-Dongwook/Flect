@@ -1,0 +1,5 @@
+{
+  "name": "babel",
+  "private": true,
+  "type": "module"
+}
