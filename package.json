@@ -1,4 +1,15 @@
 {
   "name": "flect",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "semver": "^7.8.5",
+    "signedsource": "^2.0.0",
+    "targz": "^1.0.1",
+    "to-fast-properties": "^4.0.0",
+    "tsup": "^9.0.0",
+    "typescript": "^7.0.2",
+    "undici": "^8.12.3",
+    "web-streams-polyfill": "^4.3.0",
+    "yargs": "^18.2.0"
+  }
 }
