@@ -9,3 +9,5 @@ importers:
   .: {}
 
   packages/babel: {}
+
+  packages/typescript: {}

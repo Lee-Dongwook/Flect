@@ -1,0 +1,8 @@
+{
+  "name": "typescript",
+  "private": true,
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "author": "MicroSoft",
+  "description": "Typescript 재구성 라이브러리"
+}
